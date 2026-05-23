@@ -6,7 +6,7 @@
 
 **TUI in a GUI**
 
-
+https://github.com/user-attachments/assets/704e68e3-c7dd-4b0d-a289-61ccbee42d05
 
 
 </div>
