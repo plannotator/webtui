@@ -1,0 +1,38 @@
+@import '@xterm/xterm/css/xterm.css';
+
+.webtui-shell {
+  position: relative;
+  min-height: 240px;
+  height: 100%;
+  overflow: hidden;
+  background: var(--webtui-background, #282c34);
+  color: var(--webtui-foreground, #f5f5f5);
+  border: 1px solid var(--webtui-border, rgb(255 255 255 / 0.12));
+  border-radius: 8px;
+}
+
+.webtui-terminal {
+  width: 100%;
+  height: 100%;
+  min-height: 240px;
+}
+
+.webtui-error {
+  position: absolute;
+  inset: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  border-radius: 6px;
+  background: color-mix(in srgb, #0a0a0a 88%, transparent);
+  color: #ffb4b4;
+  font:
+    13px ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    'Liberation Mono',
+    monospace;
+}
