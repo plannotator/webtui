@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "types": ["node", "vitest"],
+    "baseUrl": ".",
+    "paths": {
+      "webtui": ["src/core/index.ts"],
+      "webtui/browser": ["src/browser/index.ts"],
+      "webtui/react": ["src/react/index.ts"],
+      "webtui/styles.css": ["src/react/webtui.css"]
+    }
+  },
+  "include": ["src", "tests", "examples/basic/src", "examples/basic/vite.config.ts"]
+}

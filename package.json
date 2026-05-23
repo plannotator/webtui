@@ -1,0 +1,81 @@
+{
+  "name": "webtui",
+  "version": "0.0.0-local",
+  "private": true,
+  "type": "module",
+  "description": "Importable Xterm terminal sessions for coding agents with a local node-pty backend.",
+  "main": "./dist/core/index.js",
+  "types": "./dist/core/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/core/index.d.ts",
+      "import": "./dist/core/index.js"
+    },
+    "./core": {
+      "types": "./dist/core/index.d.ts",
+      "import": "./dist/core/index.js"
+    },
+    "./browser": {
+      "types": "./dist/browser/index.d.ts",
+      "import": "./dist/browser/index.js"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.js"
+    },
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "import": "./dist/server/index.js"
+    },
+    "./styles.css": "./src/react/webtui.css"
+  },
+  "files": [
+    "assets",
+    "dist",
+    "src/react/webtui.css",
+    "README.md"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "oxlint .",
+    "test": "vitest run",
+    "build": "tsc -p tsconfig.build.json",
+    "smoke": "tsc -p tsconfig.build.json && node smoke/import-smoke.mjs",
+    "example:build": "vite build --config examples/basic/vite.config.ts",
+    "example:start": "node examples/basic/server.mjs"
+  },
+  "dependencies": {
+    "@xterm/addon-fit": "0.12.0-beta.216",
+    "@xterm/addon-unicode11": "0.10.0-beta.216",
+    "@xterm/addon-web-links": "0.13.0-beta.216",
+    "@xterm/addon-webgl": "0.20.0-beta.215",
+    "@xterm/xterm": "6.1.0-beta.216",
+    "lucide-react": "^0.577.0",
+    "node-pty": "^1.1.0",
+    "react": "19.2.5",
+    "react-dom": "19.2.5",
+    "ws": "^8.20.0"
+  },
+  "devDependencies": {
+    "@radix-ui/react-label": "^2.1.8",
+    "@radix-ui/react-select": "^2.2.6",
+    "@types/node": "^25.6.0",
+    "@types/react": "^19.2.3",
+    "@types/react-dom": "^19.2.3",
+    "@types/ws": "^8.18.1",
+    "@vitejs/plugin-react": "^5.2.0",
+    "oxlint": "^1.63.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.2",
+    "vitest": "^4.1.5"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "node-pty"
+    ]
+  }
+}
