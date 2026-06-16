@@ -17,8 +17,9 @@ import {
 } from '../core/index.js'
 import { scheduleAgentFollowupPrompt } from './agent-followup-prompt.js'
 import {
+  createAgentPasteQueue,
   createAgentPasteReadinessTracker,
-  pasteWhenAgentReady
+  submitBracketedPasteToAgent
 } from './agent-paste-ready.js'
 import { resolveAgentSessionLaunch } from './agent-session-spawn-options.js'
 import type { AgentReadinessOptions } from './agent-ready.js'
@@ -220,6 +221,7 @@ export async function createAgentTerminalSession(
   resizeObserver?.observe(options.container)
 
   const dropTeardown = installTerminalDropHandler(options.container, options.onDrop)
+  const pasteQueue = createAgentPasteQueue()
 
   if (launchPlan?.followupPrompt) {
     const followupOptions: Parameters<typeof scheduleAgentFollowupPrompt>[0] = {
@@ -227,6 +229,7 @@ export async function createAgentTerminalSession(
       prompt: launchPlan.followupPrompt,
       expectedProcess: launchPlan.expectedProcess,
       getTitle: () => lastTitle,
+      pasteQueue,
       draftPasteReadySignal: launchPlan.draftPasteReadySignal
     }
     if (pasteReadinessTracker) {
@@ -243,18 +246,12 @@ export async function createAgentTerminalSession(
     if (!text) {
       return false
     }
-    const pasteOptions: Parameters<typeof pasteWhenAgentReady>[0] = {
+    void submitBracketedPasteToAgent({
       pty,
       content: text,
-      submit: true
-    }
-    if (pasteReadinessTracker) {
-      pasteOptions.tracker = pasteReadinessTracker
-    }
-    if (launchPlan?.draftPasteReadySignal !== undefined) {
-      pasteOptions.readySignal = launchPlan.draftPasteReadySignal
-    }
-    void pasteWhenAgentReady(pasteOptions)
+      submit: true,
+      queue: pasteQueue
+    })
     return true
   }
 

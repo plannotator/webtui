@@ -2,6 +2,7 @@ import type { DraftPasteReadySignal, PtySession } from '../core/index.js'
 import { waitForAgentReady, type AgentReadinessOptions } from './agent-ready.js'
 import {
   pasteWhenAgentReady,
+  type AgentPasteQueue,
   type AgentPasteReadinessTracker
 } from './agent-paste-ready.js'
 
@@ -11,6 +12,7 @@ export function scheduleAgentFollowupPrompt(args: {
   expectedProcess: string
   getTitle: () => string
   pasteReadinessTracker?: AgentPasteReadinessTracker
+  pasteQueue?: AgentPasteQueue
   draftPasteReadySignal?: DraftPasteReadySignal | null
   agentReadiness?: boolean | AgentReadinessOptions
 }): () => void {
@@ -21,10 +23,15 @@ export function scheduleAgentFollowupPrompt(args: {
       const pasteOptions: Parameters<typeof pasteWhenAgentReady>[0] = {
         pty: args.pty,
         content: args.prompt,
-        submit: true
+        submit: true,
+        expectedProcess: args.expectedProcess,
+        getTitle: args.getTitle
       }
       if (args.pasteReadinessTracker) {
         pasteOptions.tracker = args.pasteReadinessTracker
+      }
+      if (args.pasteQueue) {
+        pasteOptions.queue = args.pasteQueue
       }
       if (args.draftPasteReadySignal !== undefined) {
         pasteOptions.readySignal = args.draftPasteReadySignal

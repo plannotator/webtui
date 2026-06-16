@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  createAgentPasteQueue,
   createAgentPasteReadinessTracker,
-  pasteWhenAgentReady
+  pasteWhenAgentReady,
+  submitBracketedPasteToAgent
 } from '../src/browser/index.js'
 import {
   createBracketedPastePayload,
@@ -88,9 +90,86 @@ describe('paste when agent ready', () => {
     expect(pty.writes).toEqual([createBracketedPastePayload('fix tests'), '\r'])
     tracker.dispose()
   })
+
+  it('submits immediate bracketed paste with a delayed Enter', async () => {
+    const pty = createPtySession()
+    const pasted = submitBracketedPasteToAgent({
+      pty,
+      content: 'runtime prompt',
+      submit: true
+    })
+
+    expect(pty.writes).toEqual([createBracketedPastePayload('runtime prompt')])
+    await vi.advanceTimersByTimeAsync(49)
+    expect(pty.writes).toEqual([createBracketedPastePayload('runtime prompt')])
+
+    await vi.advanceTimersByTimeAsync(1)
+    await expect(pasted).resolves.toBe(true)
+    expect(pty.writes).toEqual([createBracketedPastePayload('runtime prompt'), '\r'])
+  })
+
+  it('falls back to process readiness when paste readiness times out', async () => {
+    const pty = createPtySession({
+      getForegroundProcess: () => Promise.resolve('codex')
+    })
+    const tracker = createAgentPasteReadinessTracker(pty)
+    const pasted = pasteWhenAgentReady({
+      pty,
+      tracker,
+      content: 'launch followup',
+      submit: true,
+      timeoutMs: 20,
+      expectedProcess: 'codex',
+      getTitle: () => ''
+    })
+
+    await vi.advanceTimersByTimeAsync(20)
+    await vi.advanceTimersByTimeAsync(50)
+
+    await expect(pasted).resolves.toBe(true)
+    expect(pty.writes).toEqual([createBracketedPastePayload('launch followup'), '\r'])
+    tracker.dispose()
+  })
+
+  it('serializes concurrent bracketed pastes through one queue', async () => {
+    const pty = createPtySession()
+    const queue = createAgentPasteQueue()
+    const first = submitBracketedPasteToAgent({
+      pty,
+      content: 'first',
+      submit: true,
+      queue
+    })
+    const second = submitBracketedPasteToAgent({
+      pty,
+      content: 'second',
+      submit: true,
+      queue
+    })
+
+    await Promise.resolve()
+    expect(pty.writes).toEqual([createBracketedPastePayload('first')])
+
+    await vi.advanceTimersByTimeAsync(50)
+    expect(pty.writes).toEqual([
+      createBracketedPastePayload('first'),
+      '\r',
+      createBracketedPastePayload('second')
+    ])
+
+    await vi.advanceTimersByTimeAsync(50)
+    await expect(first).resolves.toBe(true)
+    await expect(second).resolves.toBe(true)
+    expect(pty.writes).toEqual([
+      createBracketedPastePayload('first'),
+      '\r',
+      createBracketedPastePayload('second'),
+      '\r'
+    ])
+  })
 })
 
-function createPtySession(): PtySession & {
+function createPtySession(overrides: Partial<PtySession> = {}): PtySession & {
   writes: string[]
   emit(data: string): void
 } {
@@ -113,6 +192,7 @@ function createPtySession(): PtySession & {
       listeners.add(callback)
       return () => listeners.delete(callback)
     },
-    onExit: () => () => undefined
+    onExit: () => () => undefined,
+    ...overrides
   }
 }

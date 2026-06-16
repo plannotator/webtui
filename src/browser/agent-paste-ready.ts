@@ -5,13 +5,19 @@ import {
   type PtySession,
   type Unsubscribe
 } from '../core/index.js'
+import { waitForAgentReady, type AgentReadinessOptions } from './agent-ready.js'
 
 const CODEX_COMPOSER_PROMPT = '›'
 const DEFAULT_QUIET_MS = 1500
 const DEFAULT_TIMEOUT_MS = 8000
 const DEFAULT_SUBMIT_DELAY_MS = 50
+const DEFAULT_FALLBACK_READY_TIMEOUT_MS = 1000
 const RECENT_OUTPUT_CHARS = 512
 const WAIT_POLL_MS = 10
+
+export type AgentPasteQueue = {
+  enqueue<T>(operation: () => Promise<T>): Promise<T>
+}
 
 export type AgentPasteReadinessTracker = {
   sawBracketedPasteEnable(): boolean
@@ -29,6 +35,18 @@ export type PasteWhenAgentReadyOptions = {
   timeoutMs?: number
   quietMs?: number
   submitDelayMs?: number
+  queue?: AgentPasteQueue
+  expectedProcess?: string
+  getTitle?: () => string | null | undefined
+  fallbackReadinessOptions?: AgentReadinessOptions
+}
+
+export type SubmitBracketedPasteToAgentOptions = {
+  pty: PtySession
+  content: string
+  submit: boolean
+  submitDelayMs?: number
+  queue?: AgentPasteQueue
 }
 
 export function createAgentPasteReadinessTracker(pty: PtySession): AgentPasteReadinessTracker {
@@ -77,6 +95,40 @@ export function createAgentPasteReadinessTracker(pty: PtySession): AgentPasteRea
   }
 }
 
+export function createAgentPasteQueue(): AgentPasteQueue {
+  let tail = Promise.resolve()
+
+  return {
+    enqueue<T>(operation: () => Promise<T>): Promise<T> {
+      const run = tail.then(operation, operation)
+      tail = run.then(
+        () => undefined,
+        () => undefined
+      )
+      return run
+    }
+  }
+}
+
+export async function submitBracketedPasteToAgent(
+  options: SubmitBracketedPasteToAgentOptions
+): Promise<boolean> {
+  const writePaste = async (): Promise<boolean> => {
+    try {
+      options.pty.write(createBracketedPastePayload(options.content))
+      if (options.submit) {
+        await delay(options.submitDelayMs ?? DEFAULT_SUBMIT_DELAY_MS)
+        options.pty.write('\r')
+      }
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  return options.queue ? options.queue.enqueue(writePaste) : writePaste()
+}
+
 export async function pasteWhenAgentReady(options: PasteWhenAgentReadyOptions): Promise<boolean> {
   const tracker = options.tracker ?? createAgentPasteReadinessTracker(options.pty)
   const ownsTracker = options.tracker === undefined
@@ -88,20 +140,47 @@ export async function pasteWhenAgentReady(options: PasteWhenAgentReadyOptions): 
       quietMs: options.quietMs ?? DEFAULT_QUIET_MS
     })
     if (!ready) {
-      return false
+      const fallbackReady = await waitForFallbackAgentReadiness(options)
+      if (!fallbackReady) {
+        return false
+      }
     }
 
-    options.pty.write(createBracketedPastePayload(options.content))
-    if (options.submit) {
-      await delay(options.submitDelayMs ?? DEFAULT_SUBMIT_DELAY_MS)
-      options.pty.write('\r')
+    const submitOptions: SubmitBracketedPasteToAgentOptions = {
+      pty: options.pty,
+      content: options.content,
+      submit: options.submit === true
     }
-    return true
+    if (options.submitDelayMs !== undefined) {
+      submitOptions.submitDelayMs = options.submitDelayMs
+    }
+    if (options.queue !== undefined) {
+      submitOptions.queue = options.queue
+    }
+    return await submitBracketedPasteToAgent(submitOptions)
   } finally {
     if (ownsTracker) {
       tracker.dispose()
     }
   }
+}
+
+async function waitForFallbackAgentReadiness(options: PasteWhenAgentReadyOptions): Promise<boolean> {
+  if (!options.expectedProcess) {
+    return false
+  }
+  const fallbackOptions: Parameters<typeof waitForAgentReady>[0] = {
+    pty: options.pty,
+    expectedProcess: options.expectedProcess,
+    options: options.fallbackReadinessOptions ?? {
+      timeoutMs: DEFAULT_FALLBACK_READY_TIMEOUT_MS
+    }
+  }
+  if (options.getTitle !== undefined) {
+    fallbackOptions.getTitle = options.getTitle
+  }
+  const result = await waitForAgentReady(fallbackOptions)
+  return result.ready
 }
 
 function waitForPasteReadiness(args: {
