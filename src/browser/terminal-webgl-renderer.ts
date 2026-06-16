@@ -1,6 +1,10 @@
 import { WebglAddon } from '@xterm/addon-webgl'
 import type { FitAddon } from '@xterm/addon-fit'
 import type { Terminal } from '@xterm/xterm'
+import {
+  getTerminalWebglAutoDecision,
+  resetTerminalWebglAutoDecision
+} from './terminal-webgl-auto-policy.js'
 
 export type TerminalGpuAcceleration = 'auto' | 'on' | 'off'
 
@@ -12,6 +16,7 @@ let suggestedRendererType: 'dom' | undefined
 
 export function resetTerminalWebglSuggestion(): void {
   suggestedRendererType = undefined
+  resetTerminalWebglAutoDecision()
 }
 
 export function attachTerminalWebglRenderer(args: {
@@ -54,7 +59,11 @@ export function attachTerminalWebglRenderer(args: {
     if (mode === 'on') {
       return true
     }
-    return suggestedRendererType === undefined && !webglDisabledAfterContextLoss
+    return (
+      suggestedRendererType === undefined &&
+      !webglDisabledAfterContextLoss &&
+      getTerminalWebglAutoDecision().allowWebgl
+    )
   }
 
   const attachWebgl = (): void => {
