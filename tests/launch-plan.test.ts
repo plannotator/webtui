@@ -4,6 +4,7 @@ import {
   buildAgentLaunchPlan,
   BUILT_IN_AGENTS,
   listBuiltInAgents,
+  resolveAgentConfig,
   type AgentConfig
 } from '../src/core/index.js'
 
@@ -87,5 +88,79 @@ describe('agent launch planning', () => {
     expect(cursorPlan.preflightTrust).toBe('cursor')
     expect(codexPlan.preflightTrust).toBe('codex')
     expect(codexPlan.draftPasteReadySignal).toBe('codex-composer-prompt')
+  })
+
+  it('matches Orca command names for existing built-in agents', () => {
+    expect(BUILT_IN_AGENTS.continue).toMatchObject({
+      detectCommand: 'cn',
+      launchCommand: 'cn',
+      expectedProcess: 'cn'
+    })
+    expect(BUILT_IN_AGENTS['mistral-vibe']).toMatchObject({
+      detectCommand: 'vibe',
+      launchCommand: 'vibe',
+      expectedProcess: 'vibe'
+    })
+    expect(BUILT_IN_AGENTS.hermes.launchCommand).toBe('hermes --tui')
+    expect(BUILT_IN_AGENTS.kiro.launchCommand).toBe('kiro-cli chat --tui')
+  })
+
+  it('resolves portable Orca agents', () => {
+    expect(resolveAgentConfig('devin')).toMatchObject({
+      detectCommand: 'devin',
+      launchCommand: 'devin',
+      expectedProcess: 'devin',
+      promptInjectionMode: 'stdin-after-start'
+    })
+    expect(resolveAgentConfig('grok')).toMatchObject({
+      detectCommand: 'grok',
+      launchCommand: 'grok',
+      expectedProcess: 'grok',
+      promptInjectionMode: 'stdin-after-start'
+    })
+    expect(resolveAgentConfig('openclaude')).toMatchObject({
+      detectCommand: 'openclaude',
+      launchCommand: 'openclaude',
+      expectedProcess: 'openclaude',
+      promptInjectionMode: 'argv'
+    })
+    expect(resolveAgentConfig('openclaw')).toMatchObject({
+      detectCommand: 'openclaw',
+      launchCommand: 'openclaw',
+      expectedProcess: 'openclaw',
+      promptInjectionMode: 'stdin-after-start'
+    })
+    expect(resolveAgentConfig('antigravity')).toMatchObject({
+      detectCommand: 'agy',
+      launchCommand: 'agy',
+      expectedProcess: 'agy',
+      promptInjectionMode: 'flag-prompt-interactive'
+    })
+    expect(resolveAgentConfig('command-code')).toMatchObject({
+      detectCommand: 'command-code',
+      launchCommand: 'command-code --trust',
+      expectedProcess: 'command-code',
+      promptInjectionMode: 'argv'
+    })
+  })
+
+  it('builds launch plans for new portable Orca agents', () => {
+    const devinPlan = buildAgentLaunchPlan({
+      agent: 'devin',
+      prompt: { text: 'inspect the repo' },
+      platform: 'linux'
+    })
+    const openClaudePlan = buildAgentLaunchPlan({
+      agent: 'openclaude',
+      prompt: { text: 'inspect the repo' },
+      platform: 'linux'
+    })
+
+    expect(devinPlan.command).toBe('devin')
+    expect(devinPlan.followupPrompt).toBe('inspect the repo')
+    expect(devinPlan.promptDelivery).toBe('stdin-after-start')
+    expect(openClaudePlan.command).toBe("openclaude 'inspect the repo'")
+    expect(openClaudePlan.followupPrompt).toBeNull()
+    expect(openClaudePlan.promptDelivery).toBe('argv')
   })
 })

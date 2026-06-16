@@ -42,6 +42,8 @@ describe('agent status parsing', () => {
     ).toBeNull()
     expect(detectAgentStatusFromTitle('claude agents working')).toBe('working')
     expect(detectAgentStatusFromTitle('agy working')).toBe('working')
+    expect(detectAgentStatusFromTitle('Devin ready')).toBe('idle')
+    expect(detectAgentStatusFromTitle('command-code running')).toBe('working')
     expect(detectAgentStatusFromTitle('⠋ Droid')).toBe('working')
     expect(detectAgentStatusFromTitle('Droid ready')).toBe('idle')
     expect(detectAgentStatusFromTitle('Factory Droid needs input')).toBeNull()

@@ -14,10 +14,13 @@ export const AGENT_NAMES = [
   'cursor',
   'gemini',
   'antigravity',
+  'agy',
   'opencode',
   'openclaw',
   'aider',
-  'grok'
+  'grok',
+  'devin',
+  'command-code'
 ] as const
 
 const WINDOWS_EXECUTABLE_SUFFIX_RE = String.raw`(?:\.(?:exe|cmd|bat|ps1))`

@@ -26,6 +26,12 @@ export const BUILT_IN_AGENTS = {
     expectedProcess: 'claude',
     promptInjectionMode: 'argv'
   },
+  openclaude: {
+    detectCommand: 'openclaude',
+    launchCommand: 'openclaude',
+    expectedProcess: 'openclaude',
+    promptInjectionMode: 'argv'
+  },
   codex: {
     detectCommand: 'codex',
     launchCommand: 'codex',
@@ -58,6 +64,12 @@ export const BUILT_IN_AGENTS = {
     expectedProcess: 'gemini',
     promptInjectionMode: 'flag-prompt-interactive'
   },
+  antigravity: {
+    detectCommand: 'agy',
+    launchCommand: 'agy',
+    expectedProcess: 'agy',
+    promptInjectionMode: 'flag-prompt-interactive'
+  },
   aider: {
     detectCommand: 'aider',
     launchCommand: 'aider',
@@ -84,7 +96,7 @@ export const BUILT_IN_AGENTS = {
   },
   kiro: {
     detectCommand: 'kiro-cli',
-    launchCommand: 'kiro-cli',
+    launchCommand: 'kiro-cli chat --tui',
     expectedProcess: 'kiro-cli',
     promptInjectionMode: 'stdin-after-start'
   },
@@ -112,10 +124,16 @@ export const BUILT_IN_AGENTS = {
     expectedProcess: 'codebuff',
     promptInjectionMode: 'stdin-after-start'
   },
+  'command-code': {
+    detectCommand: 'command-code',
+    launchCommand: 'command-code --trust',
+    expectedProcess: 'command-code',
+    promptInjectionMode: 'argv'
+  },
   continue: {
-    detectCommand: 'continue',
-    launchCommand: 'continue',
-    expectedProcess: 'continue',
+    detectCommand: 'cn',
+    launchCommand: 'cn',
+    expectedProcess: 'cn',
     promptInjectionMode: 'stdin-after-start'
   },
   cursor: {
@@ -138,9 +156,9 @@ export const BUILT_IN_AGENTS = {
     promptInjectionMode: 'stdin-after-start'
   },
   'mistral-vibe': {
-    detectCommand: 'mistral-vibe',
-    launchCommand: 'mistral-vibe',
-    expectedProcess: 'mistral-vibe',
+    detectCommand: 'vibe',
+    launchCommand: 'vibe',
+    expectedProcess: 'vibe',
     promptInjectionMode: 'stdin-after-start'
   },
   'qwen-code': {
@@ -157,8 +175,14 @@ export const BUILT_IN_AGENTS = {
   },
   hermes: {
     detectCommand: 'hermes',
-    launchCommand: 'hermes',
+    launchCommand: 'hermes --tui',
     expectedProcess: 'hermes',
+    promptInjectionMode: 'stdin-after-start'
+  },
+  openclaw: {
+    detectCommand: 'openclaw',
+    launchCommand: 'openclaw',
+    expectedProcess: 'openclaw',
     promptInjectionMode: 'stdin-after-start'
   },
   copilot: {
@@ -167,6 +191,18 @@ export const BUILT_IN_AGENTS = {
     expectedProcess: 'copilot',
     promptInjectionMode: 'flag-interactive',
     preflightTrust: 'copilot'
+  },
+  grok: {
+    detectCommand: 'grok',
+    launchCommand: 'grok',
+    expectedProcess: 'grok',
+    promptInjectionMode: 'stdin-after-start'
+  },
+  devin: {
+    detectCommand: 'devin',
+    launchCommand: 'devin',
+    expectedProcess: 'devin',
+    promptInjectionMode: 'stdin-after-start'
   }
 } satisfies AgentConfigMap
 
