@@ -85,6 +85,7 @@ describe('agent launch planning', () => {
     })
 
     expect(cursorPlan.preflightTrust).toBe('cursor')
-    expect(codexPlan.preflightTrust).toBeNull()
+    expect(codexPlan.preflightTrust).toBe('codex')
+    expect(codexPlan.draftPasteReadySignal).toBe('codex-composer-prompt')
   })
 })

@@ -1,18 +1,35 @@
-import type { PtySession } from '../core/index.js'
+import type { DraftPasteReadySignal, PtySession } from '../core/index.js'
 import { waitForAgentReady, type AgentReadinessOptions } from './agent-ready.js'
+import {
+  pasteWhenAgentReady,
+  type AgentPasteReadinessTracker
+} from './agent-paste-ready.js'
 
 export function scheduleAgentFollowupPrompt(args: {
   pty: PtySession
   prompt: string
   expectedProcess: string
   getTitle: () => string
+  pasteReadinessTracker?: AgentPasteReadinessTracker
+  draftPasteReadySignal?: DraftPasteReadySignal | null
   agentReadiness?: boolean | AgentReadinessOptions
 }): () => void {
   let disposed = false
   let timer: ReturnType<typeof globalThis.setTimeout> | null = null
   const sendPrompt = (): void => {
     if (!disposed) {
-      args.pty.write(`${args.prompt}\r`)
+      const pasteOptions: Parameters<typeof pasteWhenAgentReady>[0] = {
+        pty: args.pty,
+        content: args.prompt,
+        submit: true
+      }
+      if (args.pasteReadinessTracker) {
+        pasteOptions.tracker = args.pasteReadinessTracker
+      }
+      if (args.draftPasteReadySignal !== undefined) {
+        pasteOptions.readySignal = args.draftPasteReadySignal
+      }
+      void pasteWhenAgentReady(pasteOptions)
     }
   }
   const readinessOptions = resolveAgentReadinessOptions(args.agentReadiness)

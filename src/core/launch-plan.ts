@@ -1,4 +1,9 @@
-import type { AgentConfigMap, AgentPreflightTrust, AgentPromptInjectionMode } from './agents.js'
+import type {
+  AgentConfigMap,
+  AgentPreflightTrust,
+  AgentPromptInjectionMode,
+  DraftPasteReadySignal
+} from './agents.js'
 import { resolveAgentConfig } from './agents.js'
 import { quoteCommandArgument, type HostPlatform } from './shell-quote.js'
 
@@ -14,6 +19,7 @@ export type AgentLaunchPlan = {
   followupPrompt: string | null
   promptInjectionMode: AgentPromptInjectionMode
   preflightTrust: AgentPreflightTrust | null
+  draftPasteReadySignal: DraftPasteReadySignal | null
   promptDelivery:
     | 'none'
     | 'argv'
@@ -51,6 +57,7 @@ export function buildAgentLaunchPlan(options: BuildAgentLaunchPlanOptions): Agen
       expectedProcess: config.expectedProcess,
       promptInjectionMode: config.promptInjectionMode,
       preflightTrust: config.preflightTrust ?? null,
+      draftPasteReadySignal: config.draftPasteReadySignal ?? null,
       promptDelivery: 'none'
     })
   }
@@ -63,6 +70,7 @@ export function buildAgentLaunchPlan(options: BuildAgentLaunchPlanOptions): Agen
       expectedProcess: config.expectedProcess,
       promptInjectionMode: config.promptInjectionMode,
       preflightTrust: config.preflightTrust ?? null,
+      draftPasteReadySignal: config.draftPasteReadySignal ?? null,
       promptDelivery: 'argv'
     })
   }
@@ -74,6 +82,7 @@ export function buildAgentLaunchPlan(options: BuildAgentLaunchPlanOptions): Agen
       expectedProcess: config.expectedProcess,
       promptInjectionMode: config.promptInjectionMode,
       preflightTrust: config.preflightTrust ?? null,
+      draftPasteReadySignal: config.draftPasteReadySignal ?? null,
       promptDelivery: 'flag-prompt'
     })
   }
@@ -85,6 +94,7 @@ export function buildAgentLaunchPlan(options: BuildAgentLaunchPlanOptions): Agen
       expectedProcess: config.expectedProcess,
       promptInjectionMode: config.promptInjectionMode,
       preflightTrust: config.preflightTrust ?? null,
+      draftPasteReadySignal: config.draftPasteReadySignal ?? null,
       promptDelivery: 'flag-prompt-interactive'
     })
   }
@@ -96,6 +106,7 @@ export function buildAgentLaunchPlan(options: BuildAgentLaunchPlanOptions): Agen
       expectedProcess: config.expectedProcess,
       promptInjectionMode: config.promptInjectionMode,
       preflightTrust: config.preflightTrust ?? null,
+      draftPasteReadySignal: config.draftPasteReadySignal ?? null,
       promptDelivery: 'flag-interactive'
     })
   }
@@ -107,6 +118,7 @@ export function buildAgentLaunchPlan(options: BuildAgentLaunchPlanOptions): Agen
     followupPrompt: promptText,
     promptInjectionMode: config.promptInjectionMode,
     preflightTrust: config.preflightTrust ?? null,
+    draftPasteReadySignal: config.draftPasteReadySignal ?? null,
     promptDelivery: 'stdin-after-start'
   })
 }
@@ -119,6 +131,7 @@ function basePlan(args: {
   followupPrompt?: string | null
   promptInjectionMode: AgentPromptInjectionMode
   preflightTrust: AgentPreflightTrust | null
+  draftPasteReadySignal: DraftPasteReadySignal | null
   promptDelivery: AgentLaunchPlan['promptDelivery']
 }): AgentLaunchPlan {
   return {
@@ -129,6 +142,7 @@ function basePlan(args: {
     followupPrompt: args.followupPrompt ?? null,
     promptInjectionMode: args.promptInjectionMode,
     preflightTrust: args.preflightTrust,
+    draftPasteReadySignal: args.draftPasteReadySignal,
     promptDelivery: args.promptDelivery
   }
 }

@@ -5,7 +5,6 @@ import type { ITerminalOptions, Terminal } from '@xterm/xterm'
 import {
   createAgentStatusOscProcessor,
   createAgentStatusTracker,
-  createBracketedPastePayload,
   detectAgentStatusFromTitle,
   type AgentConfigMap,
   type AgentLaunchPlan,
@@ -17,6 +16,10 @@ import {
   type Unsubscribe
 } from '../core/index.js'
 import { scheduleAgentFollowupPrompt } from './agent-followup-prompt.js'
+import {
+  createAgentPasteReadinessTracker,
+  pasteWhenAgentReady
+} from './agent-paste-ready.js'
 import { resolveAgentSessionLaunch } from './agent-session-spawn-options.js'
 import type { AgentReadinessOptions } from './agent-ready.js'
 import { createWebTuiTerminal } from './terminal-defaults.js'
@@ -136,6 +139,7 @@ export async function createAgentTerminalSession(
   let lastTitle = ''
   let followupTeardown = (): void => undefined
   let foregroundRefreshRiskScanTail = ''
+  const pasteReadinessTracker = launchPlan ? createAgentPasteReadinessTracker(pty) : null
   const statusProcessor = createAgentStatusOscProcessor()
   const titleTracker = createAgentStatusTracker({
     onBecameIdle: (title) => options.onTitleStatus?.('idle', title),
@@ -222,7 +226,11 @@ export async function createAgentTerminalSession(
       pty,
       prompt: launchPlan.followupPrompt,
       expectedProcess: launchPlan.expectedProcess,
-      getTitle: () => lastTitle
+      getTitle: () => lastTitle,
+      draftPasteReadySignal: launchPlan.draftPasteReadySignal
+    }
+    if (pasteReadinessTracker) {
+      followupOptions.pasteReadinessTracker = pasteReadinessTracker
     }
     if (options.agentReadiness !== undefined) {
       followupOptions.agentReadiness = options.agentReadiness
@@ -235,8 +243,18 @@ export async function createAgentTerminalSession(
     if (!text) {
       return false
     }
-    pty.write(createBracketedPastePayload(text))
-    window.setTimeout(() => pty.write('\r'), 350)
+    const pasteOptions: Parameters<typeof pasteWhenAgentReady>[0] = {
+      pty,
+      content: text,
+      submit: true
+    }
+    if (pasteReadinessTracker) {
+      pasteOptions.tracker = pasteReadinessTracker
+    }
+    if (launchPlan?.draftPasteReadySignal !== undefined) {
+      pasteOptions.readySignal = launchPlan.draftPasteReadySignal
+    }
+    void pasteWhenAgentReady(pasteOptions)
     return true
   }
 
@@ -281,6 +299,7 @@ export async function createAgentTerminalSession(
       for (const dispose of disposables) {
         dispose()
       }
+      pasteReadinessTracker?.dispose()
       titleDisposable.dispose()
       dataDisposable.dispose()
       resizeDisposable.dispose()

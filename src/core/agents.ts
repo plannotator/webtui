@@ -5,7 +5,8 @@ export type AgentPromptInjectionMode =
   | 'flag-interactive'
   | 'stdin-after-start'
 
-export type AgentPreflightTrust = 'cursor' | 'copilot'
+export type AgentPreflightTrust = 'cursor' | 'copilot' | 'codex'
+export type DraftPasteReadySignal = 'render-quiet-after-bracketed-paste' | 'codex-composer-prompt'
 
 export type AgentConfig = {
   detectCommand: string
@@ -13,6 +14,7 @@ export type AgentConfig = {
   expectedProcess: string
   promptInjectionMode: AgentPromptInjectionMode
   preflightTrust?: AgentPreflightTrust
+  draftPasteReadySignal?: DraftPasteReadySignal
 }
 
 export type AgentConfigMap = Record<string, AgentConfig>
@@ -28,7 +30,9 @@ export const BUILT_IN_AGENTS = {
     detectCommand: 'codex',
     launchCommand: 'codex',
     expectedProcess: 'codex',
-    promptInjectionMode: 'argv'
+    promptInjectionMode: 'argv',
+    preflightTrust: 'codex',
+    draftPasteReadySignal: 'codex-composer-prompt'
   },
   autohand: {
     detectCommand: 'autohand',

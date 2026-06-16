@@ -1,4 +1,5 @@
 export * from './agent-ready.js'
+export * from './agent-paste-ready.js'
 export * from './terminal-complex-script.js'
 export * from './terminal-drop.js'
 export * from './terminal-font-zoom.js'
