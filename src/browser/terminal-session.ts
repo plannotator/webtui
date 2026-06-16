@@ -28,12 +28,16 @@ import {
 } from './terminal-font-zoom.js'
 import { installTerminalImePositionFix } from './terminal-ime.js'
 import { installTerminalLinks, type TerminalLinkConfig } from './terminal-links.js'
-import { terminalOutputRequiresDomRenderer } from './terminal-complex-script.js'
+import { terminalOutputPrefersRenderRefresh } from './terminal-complex-script.js'
 import {
   attachTerminalWebglRenderer,
   type TerminalGpuAcceleration
 } from './terminal-webgl-renderer.js'
 import { handleTerminalKeyboardShortcut } from './terminal-keyboard-shortcuts.js'
+import {
+  discardForegroundRenderSettle,
+  writeForegroundTerminalChunk
+} from './write-foreground-terminal-chunk.js'
 
 export {
   DEFAULT_WEBTUI_FONT_FAMILY,
@@ -83,6 +87,8 @@ export type CreateAgentTerminalSessionOptions = {
   onDrop?: (event: TerminalDropEvent) => void
 }
 
+const TERMINAL_RENDERER_RISK_SCAN_TAIL_CHARS = 64
+
 export async function createAgentTerminalSession(
   options: CreateAgentTerminalSessionOptions
 ): Promise<WebTuiSession> {
@@ -129,6 +135,7 @@ export async function createAgentTerminalSession(
 
   let lastTitle = ''
   let followupTeardown = (): void => undefined
+  let foregroundRefreshRiskScanTail = ''
   const statusProcessor = createAgentStatusOscProcessor()
   const titleTracker = createAgentStatusTracker({
     onBecameIdle: (title) => options.onTitleStatus?.('idle', title),
@@ -137,16 +144,40 @@ export async function createAgentTerminalSession(
   })
 
   const disposables: Unsubscribe[] = []
+  const trailingIncompleteCsiSequence = (data: string): string => {
+    const escapeIndex = data.lastIndexOf('\x1b[')
+    if (escapeIndex === -1) {
+      return ''
+    }
+    const tail = data.slice(escapeIndex)
+    for (let index = 2; index < tail.length; index += 1) {
+      const code = tail.charCodeAt(index)
+      if (code >= 0x40 && code <= 0x7e) {
+        return ''
+      }
+    }
+    return tail.slice(-TERMINAL_RENDERER_RISK_SCAN_TAIL_CHARS)
+  }
+  const foregroundOutputPrefersRenderRefresh = (data: string): boolean => {
+    if (!data) {
+      return false
+    }
+    const scanData = foregroundRefreshRiskScanTail
+      ? `${foregroundRefreshRiskScanTail}${data}`
+      : data
+    const prefersRefresh = terminalOutputPrefersRenderRefresh(scanData)
+    foregroundRefreshRiskScanTail = trailingIncompleteCsiSequence(scanData)
+    return prefersRefresh
+  }
   disposables.push(
     pty.onData((data) => {
       const processed = statusProcessor(data)
       for (const payload of processed.payloads) {
         options.onAgentStatus?.(payload)
       }
-      if (terminalOutputRequiresDomRenderer(processed.cleanData)) {
-        webglRenderer.markComplexScriptOutput()
-      }
-      terminal.write(processed.cleanData)
+      writeForegroundTerminalChunk(terminal, processed.cleanData, {
+        forceViewportRefresh: foregroundOutputPrefersRenderRefresh(processed.cleanData)
+      })
     })
   )
   disposables.push(
@@ -257,6 +288,7 @@ export async function createAgentTerminalSession(
       dropTeardown()
       imeTeardown()
       linkTeardown()
+      discardForegroundRenderSettle(terminal)
       webglRenderer.dispose()
       titleTracker.reset()
       terminal.dispose()

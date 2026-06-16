@@ -5,7 +5,6 @@ import type { Terminal } from '@xterm/xterm'
 export type TerminalGpuAcceleration = 'auto' | 'on' | 'off'
 
 export type TerminalWebglRenderer = {
-  markComplexScriptOutput(): void
   dispose(): void
 }
 
@@ -21,7 +20,6 @@ export function attachTerminalWebglRenderer(args: {
   mode?: TerminalGpuAcceleration
 }): TerminalWebglRenderer {
   const mode = args.mode ?? 'auto'
-  let hasComplexScriptOutput = false
   let webglDisabledAfterContextLoss = false
   let webglAddon: WebglAddon | null = null
 
@@ -56,7 +54,7 @@ export function attachTerminalWebglRenderer(args: {
     if (mode === 'on') {
       return true
     }
-    return suggestedRendererType === undefined && !hasComplexScriptOutput && !webglDisabledAfterContextLoss
+    return suggestedRendererType === undefined && !webglDisabledAfterContextLoss
   }
 
   const attachWebgl = (): void => {
@@ -84,12 +82,6 @@ export function attachTerminalWebglRenderer(args: {
   attachWebgl()
 
   return {
-    markComplexScriptOutput(): void {
-      hasComplexScriptOutput = true
-      if (mode === 'auto') {
-        disposeWebgl({ refreshDimensions: true })
-      }
-    },
     dispose(): void {
       disposeWebgl()
     }
