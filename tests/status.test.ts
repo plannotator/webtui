@@ -4,7 +4,8 @@ import {
   createAgentStatusOscProcessor,
   detectAgentStatusFromTitle,
   extractAllOscTitles,
-  parseAgentStatusPayload
+  parseAgentStatusPayload,
+  titleHasAgentName
 } from '../src/core/index.js'
 
 describe('agent status parsing', () => {
@@ -13,6 +14,46 @@ describe('agent status parsing', () => {
     expect(detectAgentStatusFromTitle('OpenCode ready')).toBe('idle')
     expect(detectAgentStatusFromTitle('Gemini waiting for input')).toBe('permission')
     expect(detectAgentStatusFromTitle('Cursor Agent')).toBeNull()
+  })
+
+  it('matches agent names as title tokens, not substrings', () => {
+    expect(detectAgentStatusFromTitle('opencode-blinker')).toBeNull()
+    expect(detectAgentStatusFromTitle('claude-scratch')).toBeNull()
+    expect(detectAgentStatusFromTitle('~/projects/codex-scratch')).toBeNull()
+    expect(detectAgentStatusFromTitle('OpenCode ready')).toBe('idle')
+    expect(detectAgentStatusFromTitle('openclaude running')).toBe('working')
+  })
+
+  it('rejects status keywords inside path fragments and larger words', () => {
+    expect(detectAgentStatusFromTitle('~/codex/working')).not.toBe('working')
+    expect(detectAgentStatusFromTitle('C:\\aider\\thinking')).not.toBe('working')
+    expect(detectAgentStatusFromTitle('codex.working')).not.toBe('working')
+    expect(detectAgentStatusFromTitle('~/codex already built')).toBeNull()
+    expect(detectAgentStatusFromTitle('timestamp ready')).toBeNull()
+    expect(detectAgentStatusFromTitle('Codex working.')).toBe('working')
+    expect(detectAgentStatusFromTitle('Aider idle!')).toBe('idle')
+  })
+
+  it('handles newer Orca title cases without broad substring matches', () => {
+    expect(detectAgentStatusFromTitle('claude agents')).toBeNull()
+    expect(detectAgentStatusFromTitle('claude.exe agents')).toBeNull()
+    expect(
+      detectAgentStatusFromTitle('C:\\Users\\dev\\AppData\\Roaming\\npm\\claude.cmd agents')
+    ).toBeNull()
+    expect(detectAgentStatusFromTitle('claude agents working')).toBe('working')
+    expect(detectAgentStatusFromTitle('agy working')).toBe('working')
+    expect(detectAgentStatusFromTitle('⠋ Droid')).toBe('working')
+    expect(detectAgentStatusFromTitle('Droid ready')).toBe('idle')
+    expect(detectAgentStatusFromTitle('Factory Droid needs input')).toBeNull()
+    expect(detectAgentStatusFromTitle('android build working')).toBeNull()
+    expect(detectAgentStatusFromTitle('Hermes - action required')).toBe('permission')
+    expect(detectAgentStatusFromTitle('~/hermes/working')).not.toBe('working')
+  })
+
+  it('allows Windows launcher suffixes for token-matched agent names', () => {
+    expect(titleHasAgentName('openclaude.exe ready', 'openclaude')).toBe(true)
+    expect(titleHasAgentName('C:\\tools\\openclaude.exe ready', 'openclaude')).toBe(false)
+    expect(detectAgentStatusFromTitle('codex.cmd ready')).toBe('idle')
   })
 
   it('extracts all OSC titles in order', () => {

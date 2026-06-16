@@ -1,6 +1,16 @@
+import {
+  AGENT_NAMES,
+  AGY_AGENT_NAME_RE,
+  DROID_AGENT_NAME_RE,
+  HERMES_AGENT_NAME_RE,
+  titleHasAnyLegacyAgentName
+} from './agent-name-token-match.js'
+
 export type TerminalAgentStatus = 'working' | 'permission' | 'idle'
 
 const CLAUDE_IDLE = '\u2733'
+const CLAUDE_MANAGEMENT_TITLE_RE =
+  /^\s*(?:"(?:.*[\\/])?claude(?:\.(?:exe|cmd|bat|ps1))?"|'(?:.*[\\/])?claude(?:\.(?:exe|cmd|bat|ps1))?'|(?:.*[\\/])?claude(?:\.(?:exe|cmd|bat|ps1))?)\s+agents\s*$/i
 const GEMINI_WORKING = '\u2726'
 const GEMINI_SILENT_WORKING = '\u23f2'
 const GEMINI_IDLE = '\u25c7'
@@ -8,15 +18,7 @@ const GEMINI_PERMISSION = '\u270b'
 const PI_IDLE_PREFIX = '\u03c0 - '
 const CURSOR_NATIVE_TITLE_LOWER = 'cursor agent'
 
-export const AGENT_TITLE_NAMES = [
-  'claude',
-  'codex',
-  'copilot',
-  'cursor',
-  'gemini',
-  'opencode',
-  'aider'
-] as const
+export const AGENT_TITLE_NAMES = AGENT_NAMES
 
 const STRONG_IDLE_KEYWORDS = ['ready', 'idle', 'done'] as const
 const STRONG_WORKING_KEYWORDS = ['working', 'thinking', 'running'] as const
@@ -51,7 +53,10 @@ export function extractAllOscTitles(data: string): string[] {
 }
 
 export function detectAgentStatusFromTitle(title: string): TerminalAgentStatus | null {
-  if (!title || title.trim().toLowerCase() === CURSOR_NATIVE_TITLE_LOWER) {
+  if (!title || isClaudeManagementTitle(title)) {
+    return null
+  }
+  if (title.trim().toLowerCase() === CURSOR_NATIVE_TITLE_LOWER) {
     return null
   }
 
@@ -73,9 +78,13 @@ export function detectAgentStatusFromTitle(title: string): TerminalAgentStatus |
   if (containsBrailleSpinner(title)) {
     return 'working'
   }
-  if (containsAgentName(title)) {
-    const lower = title.toLowerCase()
-    if (['action required', 'permission', 'waiting'].some((word) => lower.includes(word))) {
+
+  const hasDroidAgentName = DROID_AGENT_NAME_RE.test(title)
+  const hasHermesAgentName = HERMES_AGENT_NAME_RE.test(title)
+  const hasAgyAgentName = AGY_AGENT_NAME_RE.test(title)
+  const hasLegacyAgentName = titleHasAnyLegacyAgentName(title)
+  if (hasLegacyAgentName || hasDroidAgentName || hasHermesAgentName || hasAgyAgentName) {
+    if (containsAny(title, ['action required', 'permission', 'waiting'])) {
       return 'permission'
     }
     if (STRONG_IDLE_KEYWORDS_RE.test(title)) {
@@ -89,6 +98,9 @@ export function detectAgentStatusFromTitle(title: string): TerminalAgentStatus |
     }
     if (title.startsWith('* ')) {
       return 'idle'
+    }
+    if (hasDroidAgentName && !hasLegacyAgentName) {
+      return null
     }
     return 'idle'
   }
@@ -147,8 +159,21 @@ export function isShellProcess(processName: string): boolean {
 }
 
 function containsAgentName(title: string): boolean {
+  return (
+    titleHasAnyLegacyAgentName(title) ||
+    AGY_AGENT_NAME_RE.test(title) ||
+    DROID_AGENT_NAME_RE.test(title) ||
+    HERMES_AGENT_NAME_RE.test(title)
+  )
+}
+
+export function isClaudeManagementTitle(title: string): boolean {
+  return CLAUDE_MANAGEMENT_TITLE_RE.test(title)
+}
+
+function containsAny(title: string, words: readonly string[]): boolean {
   const lower = title.toLowerCase()
-  return AGENT_TITLE_NAMES.some((name) => lower.includes(name))
+  return words.some((word) => lower.includes(word))
 }
 
 function isPiTerminalTitle(title: string): boolean {

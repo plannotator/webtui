@@ -1,4 +1,5 @@
 export * from './agents.js'
+export * from './agent-name-token-match.js'
 export * from './agent-status-osc.js'
 export * from './backend.js'
 export * from './bracketed-paste.js'
