@@ -1,4 +1,4 @@
-@import 'webtui/styles.css';
+@import '@plannotator/webtui/styles.css';
 
 :root {
   color-scheme: dark;

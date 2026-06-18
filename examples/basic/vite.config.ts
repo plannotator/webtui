@@ -12,10 +12,10 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: [
-      { find: 'webtui/browser', replacement: resolve(packageRoot, 'src/browser/index.ts') },
-      { find: 'webtui/react', replacement: resolve(packageRoot, 'src/react/index.ts') },
-      { find: 'webtui/styles.css', replacement: resolve(packageRoot, 'src/react/webtui.css') },
-      { find: /^webtui$/, replacement: resolve(packageRoot, 'src/core/index.ts') }
+      { find: '@plannotator/webtui/browser', replacement: resolve(packageRoot, 'src/browser/index.ts') },
+      { find: '@plannotator/webtui/react', replacement: resolve(packageRoot, 'src/react/index.ts') },
+      { find: '@plannotator/webtui/styles.css', replacement: resolve(packageRoot, 'src/react/webtui.css') },
+      { find: /^@plannotator\/webtui$/, replacement: resolve(packageRoot, 'src/core/index.ts') }
     ]
   },
   build: {

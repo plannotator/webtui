@@ -53,19 +53,19 @@ Ports:
 ## Imports
 
 ```ts
-import { buildAgentLaunchPlan, listBuiltInAgents } from 'webtui'
-import { WebSocketPtyBackend } from 'webtui/browser'
-import { WebTuiTerminal } from 'webtui/react'
-import { NodePtyBackend, createNodePtyWebSocketServer } from 'webtui/server'
-import 'webtui/styles.css'
+import { buildAgentLaunchPlan, listBuiltInAgents } from '@plannotator/webtui'
+import { WebSocketPtyBackend } from '@plannotator/webtui/browser'
+import { WebTuiTerminal } from '@plannotator/webtui/react'
+import { NodePtyBackend, createNodePtyWebSocketServer } from '@plannotator/webtui/server'
+import '@plannotator/webtui/styles.css'
 ```
 
 ## React Usage
 
 ```tsx
-import { WebSocketPtyBackend } from 'webtui/browser'
-import { WebTuiTerminal } from 'webtui/react'
-import 'webtui/styles.css'
+import { WebSocketPtyBackend } from '@plannotator/webtui/browser'
+import { WebTuiTerminal } from '@plannotator/webtui/react'
+import '@plannotator/webtui/styles.css'
 
 const backend = new WebSocketPtyBackend('ws://localhost:8731/pty')
 
@@ -85,7 +85,7 @@ export function AgentPane() {
 ## Browser Controller
 
 ```ts
-import { createAgentTerminalSession, WebSocketPtyBackend } from 'webtui/browser'
+import { createAgentTerminalSession, WebSocketPtyBackend } from '@plannotator/webtui/browser'
 
 const session = await createAgentTerminalSession({
   container,
@@ -101,7 +101,7 @@ session.sendAgentMessage({ text: 'Now inspect the tests' })
 ## Backend
 
 ```ts
-import { createNodePtyWebSocketServer, NodePtyBackend } from 'webtui/server'
+import { createNodePtyWebSocketServer, NodePtyBackend } from '@plannotator/webtui/server'
 
 createNodePtyWebSocketServer({
   port: 8731,
