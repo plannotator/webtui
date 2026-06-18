@@ -39,6 +39,7 @@ export type WebTuiTerminalProps = {
   commandOverrides?: Record<string, string>
   agentReadiness?: CreateAgentTerminalSessionOptions['agentReadiness']
   terminalOptions?: CreateAgentTerminalSessionOptions['terminalOptions']
+  terminalColorScheme?: CreateAgentTerminalSessionOptions['terminalColorScheme']
   terminalLinks?: CreateAgentTerminalSessionOptions['terminalLinks']
   terminalGpuAcceleration?: CreateAgentTerminalSessionOptions['terminalGpuAcceleration']
   fontZoom?: CreateAgentTerminalSessionOptions['fontZoom']
@@ -64,6 +65,7 @@ export const WebTuiTerminal = forwardRef<WebTuiTerminalHandle, WebTuiTerminalPro
       commandOverrides,
       agentReadiness,
       terminalOptions,
+      terminalColorScheme,
       terminalLinks,
       terminalGpuAcceleration,
       fontZoom,
@@ -85,6 +87,7 @@ export const WebTuiTerminal = forwardRef<WebTuiTerminalHandle, WebTuiTerminalPro
     const onTitleStatusRef = useLatestRef(onTitleStatus)
     const onDropRef = useLatestRef(onDrop)
     const terminalOptionsRef = useLatestRef(terminalOptions)
+    const terminalColorSchemeRef = useLatestRef(terminalColorScheme)
     const terminalLinksRef = useLatestRef(terminalLinks)
     const agentReadinessRef = useLatestRef(agentReadiness)
     const promptText = prompt?.text
@@ -165,6 +168,9 @@ export const WebTuiTerminal = forwardRef<WebTuiTerminalHandle, WebTuiTerminalPro
       if (terminalOptionsRef.current !== undefined) {
         sessionOptions.terminalOptions = terminalOptionsRef.current
       }
+      if (terminalColorSchemeRef.current !== undefined) {
+        sessionOptions.terminalColorScheme = terminalColorSchemeRef.current
+      }
       if (terminalLinksRef.current !== undefined) {
         sessionOptions.terminalLinks = terminalLinksRef.current
       }
@@ -216,6 +222,7 @@ export const WebTuiTerminal = forwardRef<WebTuiTerminalHandle, WebTuiTerminalPro
       terminalGpuAcceleration,
       fontZoom,
       terminalOptionsRef,
+      terminalColorSchemeRef,
       terminalLinksRef,
       onReadyRef,
       onExitRef,
@@ -224,6 +231,13 @@ export const WebTuiTerminal = forwardRef<WebTuiTerminalHandle, WebTuiTerminalPro
       onTitleStatusRef,
       onDropRef
     ])
+
+    useEffect(() => {
+      if (terminalColorScheme === undefined) {
+        return
+      }
+      sessionRef.current?.setTerminalColorScheme(terminalColorScheme)
+    }, [terminalColorScheme])
 
     return (
       <div className={['webtui-shell', className].filter(Boolean).join(' ')}>

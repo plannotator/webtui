@@ -1,6 +1,6 @@
 import { FitAddon } from '@xterm/addon-fit'
 import { Unicode11Addon } from '@xterm/addon-unicode11'
-import type { ITerminalOptions, Terminal } from '@xterm/xterm'
+import type { IDisposable, ITerminalOptions, Terminal } from '@xterm/xterm'
 
 import {
   createAgentStatusOscProcessor,
@@ -54,6 +54,7 @@ export type WebTuiSession = {
   launchPlan: AgentLaunchPlan | null
   write(data: string): void
   sendAgentMessage(message: AgentRuntimeMessage): boolean
+  setTerminalColorScheme(mode: TerminalColorSchemeMode): void
   resize(): void
   setFontSize(size: number): number
   zoomFont(direction: TerminalFontZoomDirection): number
@@ -69,6 +70,8 @@ export type AgentRuntimeMessage = {
   text: string
 }
 
+export type TerminalColorSchemeMode = 'dark' | 'light'
+
 export type CreateAgentTerminalSessionOptions = {
   container: HTMLElement
   backend: PtyBackend
@@ -81,6 +84,7 @@ export type CreateAgentTerminalSessionOptions = {
   commandOverrides?: Record<string, string>
   agentReadiness?: boolean | AgentReadinessOptions
   terminalOptions?: ITerminalOptions
+  terminalColorScheme?: TerminalColorSchemeMode
   terminalLinks?: TerminalLinkConfig
   terminalGpuAcceleration?: TerminalGpuAcceleration
   fontZoom?: TerminalFontZoomConfig
@@ -146,6 +150,11 @@ export async function createAgentTerminalSession(
     onBecameIdle: (title) => options.onTitleStatus?.('idle', title),
     onBecameWorking: (title) => options.onTitleStatus?.('working', title),
     onAgentExited: () => undefined
+  })
+  const colorSchemeProtocol = installTerminalColorSchemeProtocol({
+    terminal,
+    pty,
+    mode: options.terminalColorScheme ?? inferTerminalColorScheme(options.terminalOptions?.theme)
   })
 
   const disposables: Unsubscribe[] = []
@@ -263,6 +272,9 @@ export async function createAgentTerminalSession(
       pty.write(data)
     },
     sendAgentMessage,
+    setTerminalColorScheme(mode: TerminalColorSchemeMode): void {
+      colorSchemeProtocol.setMode(mode)
+    },
     resize(): void {
       refitAndResize(fitAddon, terminal, pty)
     },
@@ -296,6 +308,7 @@ export async function createAgentTerminalSession(
       for (const dispose of disposables) {
         dispose()
       }
+      colorSchemeProtocol.dispose()
       pasteReadinessTracker?.dispose()
       titleDisposable.dispose()
       dataDisposable.dispose()
@@ -323,4 +336,83 @@ function fitSafely(fitAddon: FitAddon): void {
 function refitAndResize(fitAddon: FitAddon, terminal: Terminal, pty: PtySession): void {
   fitSafely(fitAddon)
   pty.resize(terminal.cols, terminal.rows)
+}
+
+function installTerminalColorSchemeProtocol(args: {
+  terminal: Terminal
+  pty: PtySession
+  mode: TerminalColorSchemeMode
+}): { setMode(mode: TerminalColorSchemeMode): void; dispose(): void } {
+  let mode = args.mode
+  let subscribed = false
+  const disposables: IDisposable[] = [
+    args.terminal.parser.registerCsiHandler({ prefix: '?', final: 'h' }, (params) => {
+      if (hasMode2031(params)) {
+        subscribed = true
+        args.pty.write(mode2031SequenceFor(mode))
+      }
+      return false
+    }),
+    args.terminal.parser.registerCsiHandler({ prefix: '?', final: 'l' }, (params) => {
+      if (hasMode2031(params)) {
+        subscribed = false
+      }
+      return false
+    })
+  ]
+  return {
+    setMode(nextMode: TerminalColorSchemeMode): void {
+      if (mode === nextMode) {
+        return
+      }
+      mode = nextMode
+      if (subscribed) {
+        args.pty.write(mode2031SequenceFor(mode))
+      }
+    },
+    dispose(): void {
+      for (const disposable of disposables) {
+        disposable.dispose()
+      }
+    }
+  }
+}
+
+function hasMode2031(params: (number | number[])[]): boolean {
+  return params.some((param) => (Array.isArray(param) ? param.includes(2031) : param === 2031))
+}
+
+function mode2031SequenceFor(mode: TerminalColorSchemeMode): string {
+  return mode === 'dark' ? '\x1b[?997;1n' : '\x1b[?997;2n'
+}
+
+function inferTerminalColorScheme(theme: ITerminalOptions['theme'] | undefined): TerminalColorSchemeMode {
+  const luminance = relativeLuminanceFromHex(theme?.background)
+  return luminance !== null && luminance > 0.5 ? 'light' : 'dark'
+}
+
+function relativeLuminanceFromHex(color: string | undefined): number | null {
+  if (!color) {
+    return null
+  }
+  const match = color.trim().match(/^#([0-9a-f]{6})$/i)
+  if (!match) {
+    return null
+  }
+  const value = match[1]
+  if (!value) {
+    return null
+  }
+  const rgb: [number, number, number] = [
+    parseInt(value.slice(0, 2), 16),
+    parseInt(value.slice(2, 4), 16),
+    parseInt(value.slice(4, 6), 16)
+  ]
+  const convert = (channel: number): number => {
+    const normalized = channel / 255
+    return normalized <= 0.03928
+      ? normalized / 12.92
+      : ((normalized + 0.055) / 1.055) ** 2.4
+  }
+  return 0.2126 * convert(rgb[0]) + 0.7152 * convert(rgb[1]) + 0.0722 * convert(rgb[2])
 }

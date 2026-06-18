@@ -38,6 +38,16 @@ vi.mock('@xterm/xterm', () => ({
     cols = 80
     rows = 24
     options = { fontSize: 14 }
+    parser = {
+      handlers: [] as Array<{ id: { prefix?: string; final: string }; callback: (params: (number | number[])[]) => boolean }>,
+      registerCsiHandler: (
+        id: { prefix?: string; final: string },
+        callback: (params: (number | number[])[]) => boolean
+      ) => {
+        this.parser.handlers.push({ id, callback })
+        return { dispose: () => undefined }
+      }
+    }
     unicode = { activeVersion: '6' }
     element = null
     textarea = null
@@ -70,6 +80,20 @@ vi.mock('@xterm/xterm', () => ({
       // no-op
     }
     write(_data: string, callback?: () => void): void {
+      if (_data.includes('\x1b[?2031h')) {
+        for (const handler of this.parser.handlers) {
+          if (handler.id.prefix === '?' && handler.id.final === 'h') {
+            handler.callback([2031])
+          }
+        }
+      }
+      if (_data.includes('\x1b[?2031l')) {
+        for (const handler of this.parser.handlers) {
+          if (handler.id.prefix === '?' && handler.id.final === 'l') {
+            handler.callback([2031])
+          }
+        }
+      }
       callback?.()
     }
     refresh(): void {
@@ -135,6 +159,30 @@ describe('terminal session sendAgentMessage', () => {
 
     await vi.advanceTimersByTimeAsync(50)
     expect(pty.writes).toEqual([createBracketedPastePayload('follow up'), '\r'])
+    session.dispose()
+  })
+
+  it('answers terminal color-scheme subscription requests', async () => {
+    const { createAgentTerminalSession } = await import('../src/browser/index.js')
+    const pty = createPtySession()
+    const session = await createAgentTerminalSession({
+      container: createContainer(),
+      backend: { spawn: () => Promise.resolve(pty) },
+      command: 'bash',
+      terminalColorScheme: 'dark',
+      terminalLinks: false,
+      terminalGpuAcceleration: 'off'
+    })
+
+    pty.emit('\x1b[?2031h')
+    expect(pty.writes).toEqual(['\x1b[?997;1n'])
+
+    session.setTerminalColorScheme('light')
+    expect(pty.writes).toEqual(['\x1b[?997;1n', '\x1b[?997;2n'])
+
+    pty.emit('\x1b[?2031l')
+    session.setTerminalColorScheme('dark')
+    expect(pty.writes).toEqual(['\x1b[?997;1n', '\x1b[?997;2n'])
     session.dispose()
   })
 })

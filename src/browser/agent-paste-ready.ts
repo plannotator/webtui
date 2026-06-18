@@ -2,8 +2,7 @@ import {
   createBracketedPastePayload,
   DECSET_BRACKETED_PASTE,
   type DraftPasteReadySignal,
-  type PtySession,
-  type Unsubscribe
+  type PtySession
 } from '../core/index.js'
 import { waitForAgentReady, type AgentReadinessOptions } from './agent-ready.js'
 
