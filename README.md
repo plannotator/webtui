@@ -1,8 +1,3 @@
-<div align="center">
-
-<img src="assets/webtui.webp" alt="webtui" width="160" />
-
-
 
 **TUI in a GUI**
 
