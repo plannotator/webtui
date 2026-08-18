@@ -3,6 +3,8 @@ import type { Terminal } from '@xterm/xterm'
 import type { PtySession } from '../core/index.js'
 import type { TerminalFontZoomController } from './terminal-font-zoom.js'
 
+const SHIFT_ENTER_NEWLINE_SEQUENCE = '\x1b[13;2u'
+
 export function handleTerminalKeyboardShortcut(
   event: KeyboardEvent,
   terminal: Terminal,
@@ -10,6 +12,13 @@ export function handleTerminalKeyboardShortcut(
   fontZoom: TerminalFontZoomController
 ): boolean {
   if (fontZoom.handleKeyboardEvent(event)) {
+    return false
+  }
+
+  if (isShiftEnter(event)) {
+    event.preventDefault()
+    event.stopPropagation()
+    pty.write(SHIFT_ENTER_NEWLINE_SEQUENCE)
     return false
   }
 
@@ -46,4 +55,15 @@ export function handleTerminalKeyboardShortcut(
     return false
   }
   return true
+}
+
+function isShiftEnter(event: KeyboardEvent): boolean {
+  return (
+    event.type === 'keydown' &&
+    event.key === 'Enter' &&
+    event.shiftKey &&
+    !event.altKey &&
+    !event.ctrlKey &&
+    !event.metaKey
+  )
 }
