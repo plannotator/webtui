@@ -73,7 +73,6 @@
     "@xterm/addon-web-links": "0.13.0-beta.216",
     "@xterm/addon-webgl": "0.20.0-beta.215",
     "@xterm/xterm": "6.1.0-beta.216",
-    "lucide-react": "^0.577.0",
     "node-pty": "^1.1.0",
     "ws": "^8.20.0"
   },
@@ -89,6 +88,7 @@
     "@types/react-dom": "^19.2.3",
     "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^5.2.0",
+    "lucide-react": "^0.577.0",
     "oxlint": "^1.63.0",
     "react": "19.2.5",
     "react-dom": "19.2.5",
